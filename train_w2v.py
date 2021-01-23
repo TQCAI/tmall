@@ -39,8 +39,8 @@ merchant_w2v[[f'merchant_w2v_{i}' for i in range(size)]] = model.wv.vectors
 
 train = pd.read_csv('data_format1/train_format1.csv')
 train[['user_id', 'merchant_id']] = train[['user_id', 'merchant_id']].astype('str')
-train = train.merge(user_w2v, on='user_id')
-train = train.merge(merchant_w2v, on='merchant_id')
+train = train.merge(user_w2v,'left', on='user_id')
+train = train.merge(merchant_w2v,'left', on='merchant_id')
 train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
 y = train.pop('label')
 

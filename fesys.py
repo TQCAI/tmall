@@ -66,7 +66,7 @@ class FeaturesBuilder():
         pk_cnt_col = f"{pk_col}-cnt"
         if countPK and pk_cnt_col not in self.pk2df[t_pk].columns:
             pk_cnt_df = self.core_df.groupby(primaryKey).size().reset_index().rename(columns={0: pk_cnt_col})
-            self.pk2df[t_pk] = self.pk2df[t_pk].merge(pk_cnt_df, on=primaryKey)
+            self.pk2df[t_pk] = self.pk2df[t_pk].merge(pk_cnt_df, 'left', on=primaryKey)
         # 对聚集函数进行处理
         agg_funcs_ = []
         agg_cols_ = []
@@ -96,7 +96,7 @@ class FeaturesBuilder():
                 df_agg.columns = primaryKey + cur_agg_cols_
                 # 将除0产生的nan替换为0
                 df_agg.fillna(0, inplace=True)
-                self.pk2df[t_pk] = self.pk2df[t_pk].merge(df_agg, on=primaryKey)
+                self.pk2df[t_pk] = self.pk2df[t_pk].merge(df_agg, 'left', on=primaryKey)
             dummy_columns = []
             if dummy:
                 # 对values计数，得到dummy特征
@@ -107,7 +107,7 @@ class FeaturesBuilder():
                 for column in dummy_columns:
                     pk_cnt_df_dummy[column] *= pk_cnt_df_dummy[pk_val_col]
                 pk_cnt_df_dummy = pk_cnt_df_dummy.groupby(primaryKey).sum().reset_index().drop(pk_val_col, axis=1)
-                self.pk2df[t_pk] = self.pk2df[t_pk].merge(pk_cnt_df_dummy, on=primaryKey)
+                self.pk2df[t_pk] = self.pk2df[t_pk].merge(pk_cnt_df_dummy, 'left', on=primaryKey)
             if ratio and dummy_columns:
                 ratio_columns = [f"{dummy_column}-div-{pk_cnt_col}" for dummy_column in dummy_columns]
                 for ratio_column, dummy_column in zip(ratio_columns, dummy_columns):

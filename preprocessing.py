@@ -41,7 +41,7 @@ user_log.rename(columns={'seller': 'merchant_id'})
 
 del test_data['prob']
 all_data = train_data.append(test_data)
-all_data = all_data.merge(user_info, on=['user_id'], how='left')
+all_data = all_data.merge(user_info, 'left',on=['user_id'], how='left')
 gc.collect()
 # seller_id 与 训练测试集不匹配
 user_log.rename(columns={'seller_id': 'merchant_id'}, inplace=True)
@@ -49,7 +49,7 @@ user_log.rename(columns={'seller_id': 'merchant_id'}, inplace=True)
 user_log['brand_id'][pd.isna(user_log['brand_id'])] = 0
 user_log['brand_id'] = user_log['brand_id'].astype('int16')
 # 引入用户画像信息到用户日志中
-user_log = pd.merge(user_info, user_log, on='user_id')
+user_log = pd.merge(user_info, 'left',user_log, on='user_id')
 # 把月和天的信息抽取出来
 # pandas做这件事特别慢
 # user_log['month'] = user_log['time_stamp'].apply(lambda x: int(f"{x:04d}"[:2])).astype('int8')

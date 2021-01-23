@@ -35,12 +35,16 @@ else:
 new_feat = pd.DataFrame()
 new_feat['merchant_id'] = feat_builder.pk2df[('merchant_id',)]['merchant_id']
 # origin_map[('cat_id',)]
+op_feats = feat_builder.op_feats
+new_ops = [x for x in op_feats if
+           not ((x[0].startswith('user') or x[0].startswith('merchant')) and x[0].endswith('ratio'))]
+feat_builder.op_feats = new_ops
 train = feat_builder.outputFeatures(train_df)
 merchant_w2v = pd.read_pickle('merchant_w2v.pkl')
 user_w2v = pd.read_pickle('user_w2v.pkl')
 # 改格式用来和w2v表拼接
-# train = train.merge(user_w2v,'left', on='user_id')
-# train = train.merge(merchant_w2v,'left', on='merchant_id')
+train = train.merge(user_w2v, 'left', on='user_id')
+train = train.merge(merchant_w2v, 'left', on='merchant_id')
 # 删掉ID 特征
 # train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
 y = train.pop('label')
@@ -56,8 +60,8 @@ prediction = pd.read_csv('data_format1/test_format1.csv')
 prediction.pop('prob')
 test_df = prediction.merge(user_info, 'left', on='user_id')
 test = feat_builder.outputFeatures(test_df)
-# test = test.merge(user_w2v, 'left', on='user_id')
-# test = test.merge(merchant_w2v, 'left', on='merchant_id')
+test = test.merge(user_w2v, 'left', on='user_id')
+test = test.merge(merchant_w2v, 'left', on='merchant_id')
 model = gbm.fit(train, y)
 y_pred = gbm.predict_proba(test)
 prediction['prob'] = y_pred[:, 1]
