@@ -10,12 +10,13 @@ from joblib import load, dump
 from lightgbm import LGBMClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
+
 from fesys import FeaturesBuilder
 
 feat_builder: FeaturesBuilder = load('feat_builder.pkl')
 train_df = pd.read_csv('data_format1/train_format1.csv')
 user_info = pd.read_pickle('user_info.pkl')
-train_df = train_df.merge(user_info)
+train_df = train_df.merge(user_info, 'left', on='user_id')
 origin_map = feat_builder.pk2df
 used_keys = [('user_id',), ('merchant_id',), ('user_id', 'merchant_id'), ('age_range',), ('gender',)]
 feat_builder.pk2df = {k: feat_builder.pk2df[k] for k in used_keys}
@@ -35,10 +36,12 @@ new_feat = pd.DataFrame()
 new_feat['merchant_id'] = feat_builder.pk2df[('merchant_id',)]['merchant_id']
 # origin_map[('cat_id',)]
 train = feat_builder.outputFeatures(train_df)
+merchant_w2v = pd.read_pickle('merchant_w2v.pkl')
+user_w2v = pd.read_pickle('user_w2v.pkl')
 # 改格式用来和w2v表拼接
 # train[['user_id', 'merchant_id']] = train[['user_id', 'merchant_id']].astype('str')
-# train = train.merge(user_w2v, on='user_id')
-# train = train.merge(merchant_w2v, on='merchant_id')
+train = train.merge(user_w2v, on='user_id')
+train = train.merge(merchant_w2v, on='merchant_id')
 # 删掉ID 特征
 # train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
 y = train.pop('label')
@@ -50,7 +53,13 @@ score = cross_val_score(gbm, train, y, cv=cv, scoring='roc_auc').mean()
 print(score)
 print(score)
 
-test_df = pd.read_csv('data_format1/test_format1.csv')
-test_df.pop('prob')
+prediction = pd.read_csv('data_format1/test_format1.csv')
+prediction.pop('prob')
+test_df = prediction.merge(user_info, 'left', on='user_id')
 test = feat_builder.outputFeatures(test_df)
-
+test = test.merge(user_w2v, 'left', on='user_id')
+test = test.merge(merchant_w2v, 'left', on='merchant_id')
+model = gbm.fit(train, y)
+y_pred = gbm.predict_proba(test)
+prediction['prob'] = y_pred[:, 1]
+os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')

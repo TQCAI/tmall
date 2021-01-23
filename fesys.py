@@ -128,5 +128,13 @@ class FeaturesBuilder():
         pk_list = list(self.pk2df.keys())
         pk_list.sort()
         for pk in pk_list:
-            df = df.merge(self.pk2df[pk], 'left')
+            df = df.merge(self.pk2df[pk], 'left', on=pk)
+        self.applyOperateFeatures(df)
         return df
+
+    def applyOperateFeatures(self, base_df: pd.DataFrame):
+        for name, func in self.op_feats:
+            if isinstance(func, str):
+                func = eval(func)
+            base_df[name] = func(base_df)
+        return base_df
