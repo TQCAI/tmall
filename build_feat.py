@@ -31,11 +31,11 @@ user_feats = ['age_range', 'gender']
 cross_feats = [['user_id', 'merchant_id']]
 indicator2action_type = {
     'click': 0,
-    'add_shopping_cart': 1,
+    'add_car': 1,
     'purchase': 2,
     'favorite': 3,
 }
-for indicator in ["purchase", None]:
+for indicator in ["purchase", "add_car", "favorite", None]:
     if indicator is not None:
         action_type = indicator2action_type[indicator]
         feat_builder.core_df = user_log[user_log['action_type'] == action_type]
@@ -43,7 +43,7 @@ for indicator in ["purchase", None]:
         feat_builder.core_df = user_log
     # ==============================================
     # 计算用户和商铺的复购次数（复购率用算子算） # 叫算子吗，不确定
-    if indicator == "purchase":
+    if indicator is not None:
         for rebuy_times in rebuy_ranges:
             rebuy_udf = (
                 f'rebuy{rebuy_times}', lambda x: sum([cnt for cnt in Counter(x).values() if cnt > rebuy_times]))
@@ -84,17 +84,21 @@ for indicator in ["purchase", None]:
     for feat_a in all_features:
         targets = [feat_b for feat_b in all_features if feat_b != feat_a]
         feat_builder.buildCountFeatures(feat_a, targets, dummy=False, agg_funcs=[mostlike_udf], prefix=indicator)
-# 用户在商铺的出现比例, 以及相反
-feat_builder.addOperateFeatures('proportion_of_users_in_merchants',
-                                "lambda x: x['user_id-cnt'] / x['merchant_id-cnt']")
-feat_builder.addOperateFeatures('proportion_of_merchants_in_users',
-                                "lambda x: x['user_id-cnt'] / x['merchant_id-cnt']")
-# 用户和商铺的复购率
-for rebuy_times in rebuy_ranges:
-    feat_builder.addOperateFeatures(f'user_rebuy{rebuy_times}_ratio',
-                                    f"lambda x: x['purchase-user_id-merchant_id-rebuy{rebuy_times}'] / x['purchase-user_id-cnt']")
-    feat_builder.addOperateFeatures(f'merchant_rebuy{rebuy_times}_ratio',
-                                    f"lambda x: x['purchase-merchant_id-user_id-rebuy{rebuy_times}'] / x['purchase-merchant_id-cnt']")
+    prefix = ""
+    if indicator is not None:
+        prefix = f"{indicator}-"
+    # 用户在商铺的出现比例, 以及相反
+    feat_builder.addOperateFeatures(f'{prefix}users_div_merchants',
+                                    f"lambda x: x['{prefix}user_id-cnt'] / x['{prefix}merchant_id-cnt']")
+    feat_builder.addOperateFeatures(f'{prefix}merchants_div_users',
+                                    f"lambda x: x['{prefix}user_id-cnt'] / x['{prefix}merchant_id-cnt']")
+    # 用户和商铺的复购率
+    for rebuy_times in rebuy_ranges:
+        feat_builder.addOperateFeatures(f'{prefix}user_rebuy{rebuy_times}_ratio',
+                                        f"lambda x: x['{prefix}user_id-merchant_id-rebuy{rebuy_times}'] / x['{prefix}user_id-cnt']")
+        feat_builder.addOperateFeatures(f'{prefix}merchant_rebuy{rebuy_times}_ratio',
+                                        f"lambda x: x['{prefix}merchant_id-user_id-rebuy{rebuy_times}'] / x['{prefix}merchant_id-cnt']")
+    print('finish', indicator)
 
 feat_builder.reduce_mem_usage()
 del feat_builder.core_df
