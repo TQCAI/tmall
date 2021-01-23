@@ -35,10 +35,12 @@ new_feat = pd.DataFrame()
 new_feat['merchant_id'] = feat_builder.pk2df[('merchant_id',)]['merchant_id']
 # origin_map[('cat_id',)]
 train = feat_builder.outputFeatures(train_df)
-train[['user_id', 'merchant_id']] = train[['user_id', 'merchant_id']].astype('str')
+# 改格式用来和w2v表拼接
+# train[['user_id', 'merchant_id']] = train[['user_id', 'merchant_id']].astype('str')
 # train = train.merge(user_w2v, on='user_id')
 # train = train.merge(merchant_w2v, on='merchant_id')
-train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
+# 删掉ID 特征
+# train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
 y = train.pop('label')
 
 lr = LogisticRegression()
@@ -47,3 +49,8 @@ cv = StratifiedKFold(5, True, 0)
 score = cross_val_score(gbm, train, y, cv=cv, scoring='roc_auc').mean()
 print(score)
 print(score)
+
+test_df = pd.read_csv('data_format1/test_format1.csv')
+test_df.pop('prob')
+test = feat_builder.outputFeatures(test_df)
+
