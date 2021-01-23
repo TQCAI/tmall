@@ -7,7 +7,9 @@ import os
 
 import pandas as pd
 from joblib import load, dump
-
+from lightgbm import LGBMClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from fesys import FeaturesBuilder
 
 feat_builder: FeaturesBuilder = load('feat_builder.pkl')
@@ -31,6 +33,17 @@ else:
 # 把 cat brand 的特征 做到 merchant 里面
 new_feat = pd.DataFrame()
 new_feat['merchant_id'] = feat_builder.pk2df[('merchant_id',)]['merchant_id']
-origin_map[('cat_id',)]
-train_df2 = feat_builder.outputFeatures(train_df)
-print(train_df2)
+# origin_map[('cat_id',)]
+train = feat_builder.outputFeatures(train_df)
+train[['user_id', 'merchant_id']] = train[['user_id', 'merchant_id']].astype('str')
+# train = train.merge(user_w2v, on='user_id')
+# train = train.merge(merchant_w2v, on='merchant_id')
+train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
+y = train.pop('label')
+
+lr = LogisticRegression()
+gbm = LGBMClassifier()
+cv = StratifiedKFold(5, True, 0)
+score = cross_val_score(gbm, train, y, cv=cv, scoring='roc_auc').mean()
+print(score)
+print(score)
