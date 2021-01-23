@@ -123,13 +123,14 @@ class FeaturesBuilder():
         # 记得处理nan
         self.op_feats.append([new_feature_name, df_apply_func])
 
-    def outputFeatures(self, base_df: pd.DataFrame):
+    def outputFeatures(self, base_df: pd.DataFrame, apply_op=True):
         df = base_df
         pk_list = list(self.pk2df.keys())
         pk_list.sort()
         for pk in pk_list:
             df = df.merge(self.pk2df[pk], 'left', on=pk)
-        self.applyOperateFeatures(df)
+        if apply_op:
+            self.applyOperateFeatures(df)
         return df
 
     def applyOperateFeatures(self, base_df: pd.DataFrame):
