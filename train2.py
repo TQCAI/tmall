@@ -13,7 +13,7 @@ from sklearn.model_selection import StratifiedKFold
 
 from fesys import FeaturesBuilder
 
-feat_builder: FeaturesBuilder = load('data/feat_builder_all.pkl')
+feat_builder: FeaturesBuilder = load('data/feat_builder.pkl')
 train_df = pd.read_csv('data_format1/train_format1.csv')
 user_info = pd.read_pickle('data/user_info.pkl')
 train_df = train_df.merge(user_info, 'left', on='user_id')
@@ -35,24 +35,20 @@ feat_builder.pk2df = {k: feat_builder.pk2df[k] for k in used_keys}
 new_feat = pd.DataFrame()
 new_feat['merchant_id'] = feat_builder.pk2df[('merchant_id',)]['merchant_id']
 # origin_map[('cat_id',)]
-op_feats = feat_builder.op_feats
-new_ops = [x for x in op_feats if
-           not ((x[0].startswith('user') or x[0].startswith('merchant')) and x[0].endswith('ratio'))]
-feat_builder.op_feats = new_ops
 train = feat_builder.outputFeatures(train_df)
-merchant_w2v = pd.read_pickle('data/merchant_w2v.pkl')
-user_w2v = pd.read_pickle('data/user_w2v.pkl')
-# train.to_pickle('data/train.pkl') # 存一下，算特征筛选
+merchant_w2v = pd.read_pickle('data/merchant_n2v.pkl')
+user_w2v = pd.read_pickle('data/user_n2v.pkl')
+train.to_pickle('data/train.pkl') # 存一下，算特征筛选
 # exit(0)
 # 改格式用来和w2v表拼接
 y = train.pop('label')
-boruta = load('data/boruta.pkl')
+# boruta = load('data/boruta.pkl')
 # 删掉不必要的特征
 id_c = ['user_id', 'merchant_id']
 
 ids = train[id_c]
-train = boruta.transform(train, return_df=True)
-train[id_c] = ids
+# train = boruta.transform(train, return_df=True)
+# train[id_c] = ids
 train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
 # train.drop(id_c, axis=1, inplace=True)
@@ -67,7 +63,6 @@ cv = StratifiedKFold(5, True, 0)
 bc = BalancedBaggingClassifier(
     gbm, random_state=0,
     oob_score=True, #warm_start=True
-
 )
 
 prediction = pd.read_csv('data_format1/test_format1.csv')
@@ -76,8 +71,8 @@ test_df = prediction.merge(user_info, 'left', on='user_id')
 test = feat_builder.outputFeatures(test_df)
 
 ids = test[id_c]
-test = boruta.transform(test, return_df=True)
-test[id_c] = ids
+# test = boruta.transform(test, return_df=True)
+# test[id_c] = ids
 test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
 # test.drop(id_c, axis=1, inplace=True)
