@@ -42,13 +42,13 @@ train.to_pickle('data/train.pkl') # 存一下，算特征筛选
 # exit(0)
 # 改格式用来和w2v表拼接
 y = train.pop('label')
-# boruta = load('data/boruta.pkl')
+boruta = load('data/boruta.pkl')
 # 删掉不必要的特征
 id_c = ['user_id', 'merchant_id']
 
 ids = train[id_c]
-# train = boruta.transform(train, return_df=True)
-# train[id_c] = ids
+train = boruta.transform(train, return_df=True)
+train[id_c] = ids
 train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
 # train.drop(id_c, axis=1, inplace=True)
@@ -71,8 +71,8 @@ test_df = prediction.merge(user_info, 'left', on='user_id')
 test = feat_builder.outputFeatures(test_df)
 
 ids = test[id_c]
-# test = boruta.transform(test, return_df=True)
-# test[id_c] = ids
+test = boruta.transform(test, return_df=True)
+test[id_c] = ids
 test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
 # test.drop(id_c, axis=1, inplace=True)
