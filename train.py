@@ -55,7 +55,7 @@ train = boruta.transform(train, return_df=True)
 train[id_c] = ids
 train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
-train.drop(id_c, axis=1, inplace=True)
+# train.drop(id_c, axis=1, inplace=True)
 # 删掉ID 特征
 # train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
 
@@ -76,7 +76,7 @@ test = boruta.transform(test, return_df=True)
 test[id_c] = ids
 test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
-test.drop(id_c, axis=1, inplace=True)
+# test.drop(id_c, axis=1, inplace=True)
 
 model = gbm.fit(train, y)
 y_pred = gbm.predict_proba(test)
