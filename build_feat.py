@@ -103,5 +103,5 @@ for indicator in ["purchase", "add_car", "favorite", None]:
 
 feat_builder.reduce_mem_usage()
 del feat_builder.core_df
-dump(feat_builder, "feat_builder.pkl")
+dump(feat_builder, "data/feat_builder.pkl")
 print("总特征数：", feat_builder.n_features)

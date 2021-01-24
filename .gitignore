@@ -30,3 +30,4 @@ tmall-repeat-buyer-prediction
 *.ipynb
 *.mp3
 .fuse*
+data
