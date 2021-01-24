@@ -41,6 +41,7 @@ merchant_w2v = pd.read_pickle('data/merchant_n2v.pkl')
 user_w2v = pd.read_pickle('data/user_n2v.pkl')
 merchant_w2v_col = merchant_w2v.columns.tolist()[1:]
 user_w2v_col = user_w2v.columns.tolist()[1:]
+sub_col = [f'{c1}-sub-{c2}' for c1, c2 in zip(user_w2v_col, merchant_w2v_col)]
 train.to_pickle('data/train.pkl')  # 存一下，算特征筛选
 # exit(0)
 # 改格式用来和w2v表拼接
@@ -56,6 +57,7 @@ train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
 # 用户与商家的内积
 train['uv_dot_mv'] = np.sum(train[merchant_w2v_col].values * train[user_w2v_col].values, axis=1)
+train[sub_col] = train[user_w2v_col] - train[merchant_w2v]
 # train.drop(id_c, axis=1, inplace=True)
 # 删掉ID 特征
 # train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
@@ -82,11 +84,12 @@ test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
 # 用户与商家的内积
 test['uv_dot_mv'] = np.sum(test[merchant_w2v_col].values * test[user_w2v_col].values, axis=1)
+test[sub_col] = test[user_w2v_col] - test[merchant_w2v]
 # test.drop(id_c, axis=1, inplace=True)
 
 model = bc.fit(train, y)
 y_pred = bc.predict_proba(test)
 prediction['prob'] = y_pred[:, 1]
-prediction.to_csv('predictions/prediction1.csv', index=False)
+prediction.to_csv('predictions/prediction2.csv', index=False)
 os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')
 print(bc)
