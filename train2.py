@@ -14,6 +14,13 @@ from sklearn.model_selection import StratifiedKFold
 
 from fesys import FeaturesBuilder
 
+
+def calc_uv_cosine_mv(df):
+    df['uv_cosine_mv'] = np.sum(df[merchant_w2v_col].values * df[user_w2v_col].values, axis=1) / \
+                          (np.linalg.norm(df[merchant_w2v_col].values, axis=1) *
+                           np.linalg.norm(df[user_w2v_col].values, axis=1))
+
+
 feat_builder: FeaturesBuilder = load('data/feat_builder.pkl')
 train_df = pd.read_csv('data_format1/train_format1.csv')
 user_info = pd.read_pickle('data/user_info.pkl')
@@ -39,6 +46,8 @@ new_feat['merchant_id'] = feat_builder.pk2df[('merchant_id',)]['merchant_id']
 train = feat_builder.outputFeatures(train_df)
 merchant_w2v = pd.read_pickle('data/merchant_n2v.pkl')
 user_w2v = pd.read_pickle('data/user_n2v.pkl')
+# merchant_w2v_n = pd.read_pickle('data/merchant_n2v_dec_10.pkl')
+# user_w2v_n = pd.read_pickle('data/user_n2v_dec_10.pkl')
 merchant_w2v_col = merchant_w2v.columns.tolist()[1:]
 user_w2v_col = user_w2v.columns.tolist()[1:]
 sub_col = [f'{c1}-sub-{c2}' for c1, c2 in zip(user_w2v_col, merchant_w2v_col)]
@@ -55,9 +64,11 @@ train = boruta.transform(train, return_df=True)
 train[id_c] = ids
 train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
-# 用户与商家的内积
-train['uv_dot_mv'] = np.sum(train[merchant_w2v_col].values * train[user_w2v_col].values, axis=1)
-train[sub_col] = train[user_w2v_col] - train[merchant_w2v]
+# train = train.merge(user_w2v_n, 'left', on='user_id')
+# train = train.merge(merchant_w2v_n, 'left', on='merchant_id')
+# 用户与商家的余弦距离
+calc_uv_cosine_mv(train)
+# train[sub_col] = train[user_w2v_col] - train[merchant_w2v_col]
 # train.drop(id_c, axis=1, inplace=True)
 # 删掉ID 特征
 # train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
@@ -83,13 +94,13 @@ test[id_c] = ids
 test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
 # 用户与商家的内积
-test['uv_dot_mv'] = np.sum(test[merchant_w2v_col].values * test[user_w2v_col].values, axis=1)
-test[sub_col] = test[user_w2v_col] - test[merchant_w2v]
+calc_uv_cosine_mv(test)
+# test[sub_col] = test[user_w2v_col] - test[merchant_w2v_col]
 # test.drop(id_c, axis=1, inplace=True)
 
 model = bc.fit(train, y)
 y_pred = bc.predict_proba(test)
 prediction['prob'] = y_pred[:, 1]
-prediction.to_csv('predictions/prediction2.csv', index=False)
+prediction.to_csv('predictions/prediction_cosine.csv', index=False)
 os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')
 print(bc)
