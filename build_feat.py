@@ -93,11 +93,12 @@ for indicator in ["purchase", "add_car", "favorite", None]:
     feat_builder.addOperateFeatures(f'{prefix}merchants_div_users',
                                     f"lambda x: x['{prefix}user_id-cnt'] / x['{prefix}merchant_id-cnt']")
     # 用户和商铺的复购率
-    for rebuy_times in rebuy_ranges:
-        feat_builder.addOperateFeatures(f'{prefix}user_rebuy{rebuy_times}_ratio',
-                                        f"lambda x: x['{prefix}user_id-merchant_id-rebuy{rebuy_times}'] / x['{prefix}user_id-cnt']")
-        feat_builder.addOperateFeatures(f'{prefix}merchant_rebuy{rebuy_times}_ratio',
-                                        f"lambda x: x['{prefix}merchant_id-user_id-rebuy{rebuy_times}'] / x['{prefix}merchant_id-cnt']")
+    if indicator:
+        for rebuy_times in rebuy_ranges:
+            feat_builder.addOperateFeatures(f'{prefix}user_rebuy{rebuy_times}_ratio',
+                                            f"lambda x: x['{prefix}user_id-merchant_id-rebuy{rebuy_times}'] / x['{prefix}user_id-cnt']")
+            feat_builder.addOperateFeatures(f'{prefix}merchant_rebuy{rebuy_times}_ratio',
+                                            f"lambda x: x['{prefix}merchant_id-user_id-rebuy{rebuy_times}'] / x['{prefix}merchant_id-cnt']")
     print('finish', indicator)
 
 feat_builder.reduce_mem_usage()

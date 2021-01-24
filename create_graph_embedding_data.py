@@ -37,4 +37,8 @@ for u in G.keys():
         data.append([u, v, Guv])
 
 pd.DataFrame(data).to_csv('graph_data.csv', header=False, index=False)
-dump(G, "graph_data.pkl")
+# 对字典进行序列化
+dump(entity2id,"entity2id.pkl")
+# 因为含有lambda，所以无法直接序列化
+# 结点规模是40w
+dump(dict(G), "graph_data.pkl")
