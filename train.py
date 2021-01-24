@@ -6,7 +6,7 @@
 import os
 
 import pandas as pd
-from joblib import load, dump
+from joblib import load
 from lightgbm import LGBMClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
@@ -42,17 +42,25 @@ feat_builder.op_feats = new_ops
 train = feat_builder.outputFeatures(train_df)
 merchant_w2v = pd.read_pickle('data/merchant_w2v.pkl')
 user_w2v = pd.read_pickle('data/user_w2v.pkl')
-train.to_pickle('data/train.pkl')
-exit(0)
+# train.to_pickle('data/train.pkl') # 存一下，算特征筛选
+# exit(0)
 # 改格式用来和w2v表拼接
+y = train.pop('label')
+boruta = load('data/boruta.pkl')
+# 删掉不必要的特征
+id_c = ['user_id', 'merchant_id']
+
+ids = train[id_c]
+train = boruta.transform(train, return_df=True)
+train[id_c] = ids
 train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
+train.drop(id_c, axis=1, inplace=True)
 # 删掉ID 特征
 # train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
-y = train.pop('label')
 
 lr = LogisticRegression()
-gbm = LGBMClassifier()
+gbm = LGBMClassifier(random_state=0)
 cv = StratifiedKFold(5, True, 0)
 score = cross_val_score(gbm, train, y, cv=cv, scoring='roc_auc').mean()
 print(score)
@@ -62,8 +70,14 @@ prediction = pd.read_csv('data_format1/test_format1.csv')
 prediction.pop('prob')
 test_df = prediction.merge(user_info, 'left', on='user_id')
 test = feat_builder.outputFeatures(test_df)
+
+ids = test[id_c]
+test = boruta.transform(test, return_df=True)
+test[id_c] = ids
 test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
+test.drop(id_c, axis=1, inplace=True)
+
 model = gbm.fit(train, y)
 y_pred = gbm.predict_proba(test)
 prediction['prob'] = y_pred[:, 1]
