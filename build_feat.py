@@ -35,7 +35,7 @@ indicator2action_type = {
     'purchase': 2,
     'favorite': 3,
 }
-for indicator in ["purchase", "add_car", "favorite", None]:
+for indicator in ["purchase", None]:
     if indicator is not None:
         action_type = indicator2action_type[indicator]
         feat_builder.core_df = user_log[user_log['action_type'] == action_type]
@@ -56,6 +56,7 @@ for indicator in ["purchase", "add_car", "favorite", None]:
     for pk in item_feats:
         feat_builder.buildCountFeatures(pk, user_feats, prefix=indicator,
                                         agg_funcs=['mean', 'max', 'min', 'median', 'std', 'var', unique_udf])
+    # =============================================
     # 【商家，商品，品牌，类别】与多少【用户】交互过
     for pk in item_feats:
         feat_builder.buildCountFeatures(pk, 'user_id', dummy=False, agg_funcs=[unique_udf], prefix=indicator)
@@ -68,7 +69,7 @@ for indicator in ["purchase", "add_car", "favorite", None]:
                                         prefix=indicator)
     # =============================================
     if indicator is None:
-        # 【用户，商家，商品，品牌，类别, 。。。】的【action_type】统计
+        # 【用户，商家，商品，品牌，类别, 。。。】的【action_type】统计 （行为比例）
         for pk in ['user_id'] + item_feats + user_feats + cross_feats:
             feat_builder.buildCountFeatures(pk, 'action_type', agg_funcs=[unique_udf], prefix=indicator)
     # =============================================
@@ -104,4 +105,5 @@ for indicator in ["purchase", "add_car", "favorite", None]:
 feat_builder.reduce_mem_usage()
 del feat_builder.core_df
 dump(feat_builder, "data/feat_builder.pkl")
+# 打印出来的总特征数不准，因为有些主键对应的表用不上
 print("总特征数：", feat_builder.n_features)

@@ -22,4 +22,4 @@ for n_components in [10, 20, 30]:
     user_w2v_n = pd.DataFrame()
     user_w2v_n['user_id'] = user_w2v['user_id']
     user_w2v_n[[f"user_n2v_dec_{i}" for i in range(n_components)]] = user_w2v_d
-    user_w2v_n.to_pickle(f'data/user_w2v_dec_{n_components}')
+    user_w2v_n.to_pickle(f'data/user_w2v_dec_{n_components}.pkl') # 他喵的，打错名字了

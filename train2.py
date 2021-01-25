@@ -17,8 +17,16 @@ from fesys import FeaturesBuilder
 
 def calc_uv_cosine_mv(df):
     df['uv_cosine_mv'] = np.sum(df[merchant_w2v_col].values * df[user_w2v_col].values, axis=1) / \
-                          (np.linalg.norm(df[merchant_w2v_col].values, axis=1) *
-                           np.linalg.norm(df[user_w2v_col].values, axis=1))
+                         (np.linalg.norm(df[merchant_w2v_col].values, axis=1) *
+                          np.linalg.norm(df[user_w2v_col].values, axis=1))
+
+
+# def calc_vec_sub(df):
+#     df = df.merge(user_w2v_n, 'left', on='user_id')
+#     df = df.merge(merchant_w2v_n, 'left', on='merchant_id')
+#     df[sub_col] = df[user_w2v_n_col].values - df[merchant_w2v_n_col].values
+#     df.drop(user_w2v_n_col + merchant_w2v_n_col, axis=1, inplace=True)
+#     return df
 
 
 feat_builder: FeaturesBuilder = load('data/feat_builder.pkl')
@@ -46,12 +54,14 @@ new_feat['merchant_id'] = feat_builder.pk2df[('merchant_id',)]['merchant_id']
 train = feat_builder.outputFeatures(train_df)
 merchant_w2v = pd.read_pickle('data/merchant_n2v.pkl')
 user_w2v = pd.read_pickle('data/user_n2v.pkl')
-# merchant_w2v_n = pd.read_pickle('data/merchant_n2v_dec_10.pkl')
-# user_w2v_n = pd.read_pickle('data/user_n2v_dec_10.pkl')
 merchant_w2v_col = merchant_w2v.columns.tolist()[1:]
 user_w2v_col = user_w2v.columns.tolist()[1:]
-sub_col = [f'{c1}-sub-{c2}' for c1, c2 in zip(user_w2v_col, merchant_w2v_col)]
-train.to_pickle('data/train.pkl')  # 存一下，算特征筛选
+# 加载降维后的特征
+# merchant_w2v_n = pd.read_pickle('data/merchant_w2v_dec_10.pkl')
+# user_w2v_n = pd.read_pickle('data/user_w2v_dec_10.pkl')
+# merchant_w2v_n_col = merchant_w2v_n.columns.tolist()[1:]
+# user_w2v_n_col = user_w2v_n.columns.tolist()[1:]
+# sub_col = [f'{c1}-sub-{c2}' for c1, c2 in zip(user_w2v_n_col, merchant_w2v_n_col)]
 # exit(0)
 # 改格式用来和w2v表拼接
 y = train.pop('label')
@@ -64,14 +74,11 @@ train = boruta.transform(train, return_df=True)
 train[id_c] = ids
 train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
-# train = train.merge(user_w2v_n, 'left', on='user_id')
-# train = train.merge(merchant_w2v_n, 'left', on='merchant_id')
 # 用户与商家的余弦距离
 calc_uv_cosine_mv(train)
-# train[sub_col] = train[user_w2v_col] - train[merchant_w2v_col]
-# train.drop(id_c, axis=1, inplace=True)
-# 删掉ID 特征
-# train.drop(['user_id', 'merchant_id'], axis=1, inplace=True)
+# 用户embd-商家embd
+# train = calc_vec_sub(train)
+
 
 gbm = LGBMClassifier(random_state=0)
 cv = StratifiedKFold(5, True, 0)
@@ -93,14 +100,14 @@ test = boruta.transform(test, return_df=True)
 test[id_c] = ids
 test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
-# 用户与商家的内积
+# 用户与商家的余弦距离
 calc_uv_cosine_mv(test)
-# test[sub_col] = test[user_w2v_col] - test[merchant_w2v_col]
-# test.drop(id_c, axis=1, inplace=True)
+# 用户embd-商家embd
+# test = calc_vec_sub(test)
 
 model = bc.fit(train, y)
 y_pred = bc.predict_proba(test)
 prediction['prob'] = y_pred[:, 1]
-prediction.to_csv('predictions/prediction_cosine.csv', index=False)
+prediction.to_csv('predictions/prediction_sub.csv', index=False)
 os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')
 print(bc)

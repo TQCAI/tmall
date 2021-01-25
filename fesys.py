@@ -4,7 +4,7 @@
 # @Date    : 2021-01-21
 # @Contact    : qichun.tang@bupt.edu.cn
 import warnings
-from typing import List, Dict, Union, Tuple, Callable
+from typing import List, Dict, Union, Tuple, Callable, Optional
 
 import pandas as pd
 
@@ -39,6 +39,7 @@ class FeaturesBuilder():
             dummy=True,
             ratio=True,
             agg_funcs=None,  # 注意， 如果countValues为离散特征或计数特征请谨慎使用，所以默认为None
+            multi_out_agg_funcs: Optional[List[Tuple[List[str], Callable]]] = None,
             prefix=None
             # descriptions=None # 如果不为空，长度需要与countValues一致
     ):
@@ -60,6 +61,7 @@ class FeaturesBuilder():
         if not countValues:
             dummy = False
             agg_funcs = None
+        # todo: 考虑只做ratio，不要计数dummy的情况
         if dummy == False or countPK == False:
             ratio = False
         # 先对主键进行统计
@@ -97,6 +99,12 @@ class FeaturesBuilder():
                 # 将除0产生的nan替换为0
                 df_agg.fillna(0, inplace=True)
                 self.pk2df[t_pk] = self.pk2df[t_pk].merge(df_agg, 'left', on=primaryKey)
+            if multi_out_agg_funcs:
+                for names, func in multi_out_agg_funcs:
+                    df_mo_agg = self.core_df.groupby(primaryKey).agg({countValue: func}).reset_index()
+                    for i, name in enumerate(names):
+                        df_mo_agg[f"{pk_val_col}-{name}"] = df_mo_agg[countValue].apply(lambda x: x[i])
+                    df_mo_agg.pop(countValue)
             dummy_columns = []
             if dummy:
                 # 对values计数，得到dummy特征
