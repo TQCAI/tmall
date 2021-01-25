@@ -33,8 +33,8 @@ def apply_embedding_features(df):
     df = df.merge(user_w2v, 'left', on='user_id')
     df = df.merge(merchant_w2v, 'left', on='merchant_id')
     calc_uv_cosine_mv(df)
-    df[sub_col] = df[user_w2v_col].values - df[merchant_w2v_col].values
-    df.drop(user_w2v_col + merchant_w2v_col, axis=1, inplace=True)
+    # df[sub_col] = df[user_w2v_col].values - df[merchant_w2v_col].values
+    # df.drop(user_w2v_col + merchant_w2v_col, axis=1, inplace=True)
     return df
 
 
@@ -77,7 +77,7 @@ train = apply_boruta_feature_selection(train, boruta)
 # 引入Embedding
 train = apply_embedding_features(train)
 # 引入一些相似度特征 todo: 逐个尝试？
-train[sim_cols] = similarity_features.iloc[:N, 2:]
+train["item_id_similarity"] = similarity_features["item_id_similarity"][:N]
 
 gbm = LGBMClassifier(random_state=0)
 cv = StratifiedKFold(5, True, 0)
@@ -99,7 +99,7 @@ test = apply_boruta_feature_selection(test, boruta)
 test = apply_embedding_features(test)
 # 用户与商家的余弦距离
 # 引入一些相似度特征
-test[sim_cols] = similarity_features.iloc[N:, 2:]
+test["item_id_similarity"] = similarity_features["item_id_similarity"][N:]
 
 model = bc.fit(train, y)
 y_pred = bc.predict_proba(test)
