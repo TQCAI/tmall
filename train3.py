@@ -24,12 +24,23 @@ def calc_uv_cosine_mv(df):
 def apply_boruta_feature_selection(df, boruta):
     id_c = ['user_id', 'merchant_id']
     ids = df[id_c]
-    df = boruta.transform(df, weak=False, return_df=True)
+    df = boruta.transform(df, weak=True, return_df=True)
     df[id_c] = ids
     return df
 
 
+def apply_embedding_features(df):
+    df = df.merge(user_w2v, 'left', on='user_id')
+    df = df.merge(merchant_w2v, 'left', on='merchant_id')
+    calc_uv_cosine_mv(df)
+    df[sub_col] = df[user_w2v_col].values - df[merchant_w2v_col].values
+    df.drop(user_w2v_col + merchant_w2v_col, axis=1, inplace=True)
+    return df
+
+
 boruta = load('data/boruta2.pkl')
+similarity_features = pd.read_pickle("data/similarity_features.pkl")
+sim_cols = similarity_features.columns.tolist()[2:]
 feat_builder: FeaturesBuilder = load('data/feat_builder.pkl')
 feat_builder2: FeaturesBuilder = load('data/feat_builder2.pkl')
 u_df = feat_builder2.pk2df[('user_id',)]
@@ -52,21 +63,21 @@ merchant_w2v = pd.read_pickle('data/merchant_n2v.pkl')
 user_w2v = pd.read_pickle('data/user_n2v.pkl')
 merchant_w2v_col = merchant_w2v.columns.tolist()[1:]
 user_w2v_col = user_w2v.columns.tolist()[1:]
-
+sub_col = [f'{c1}-sub-{c2}' for c1, c2 in zip(user_w2v_col, merchant_w2v_col)]
 # train_all=feat_builder2.outputFeatures(feat_builder.outputFeatures(train_df))
 # dump(train_all, "data/train2.pkl")
 
 y = train_df.pop('label')
+N = y.size
 # 构造train
 train = feat_builder.outputFeatures(train_df)
 train = feat_builder2.outputFeatures(train)
 # boruta特征筛选
 train = apply_boruta_feature_selection(train, boruta)
 # 引入Embedding
-train = train.merge(user_w2v, 'left', on='user_id')
-train = train.merge(merchant_w2v, 'left', on='merchant_id')
-# 用户与商家的余弦距离
-calc_uv_cosine_mv(train)
+train = apply_embedding_features(train)
+# 引入一些相似度特征 todo: 逐个尝试？
+train[sim_cols] = similarity_features.iloc[:N, 2:]
 
 gbm = LGBMClassifier(random_state=0)
 cv = StratifiedKFold(5, True, 0)
@@ -85,14 +96,14 @@ test = feat_builder2.outputFeatures(test)
 # boruta特征筛选
 test = apply_boruta_feature_selection(test, boruta)
 # 引入Embedding
-test = test.merge(user_w2v, 'left', on='user_id')
-test = test.merge(merchant_w2v, 'left', on='merchant_id')
+test = apply_embedding_features(test)
 # 用户与商家的余弦距离
-calc_uv_cosine_mv(test)
+# 引入一些相似度特征
+test[sim_cols] = similarity_features.iloc[N:, 2:]
 
 model = bc.fit(train, y)
 y_pred = bc.predict_proba(test)
 prediction['prob'] = y_pred[:, 1]
-prediction.to_csv('predictions/prediction1.csv', index=False)
+prediction.to_csv('predictions/prediction2.csv', index=False)
 os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')
 print(bc)
