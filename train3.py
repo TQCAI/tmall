@@ -24,12 +24,12 @@ def calc_uv_cosine_mv(df):
 def apply_boruta_feature_selection(df, boruta):
     id_c = ['user_id', 'merchant_id']
     ids = df[id_c]
-    df = boruta.transform(df, return_df=True)
+    df = boruta.transform(df, weak=True, return_df=True)
     df[id_c] = ids
     return df
 
 
-boruta = load('data/boruta.pkl')
+boruta = load('data/boruta2.pkl')
 feat_builder: FeaturesBuilder = load('data/feat_builder.pkl')
 feat_builder2: FeaturesBuilder = load('data/feat_builder2.pkl')
 u_df = feat_builder2.pk2df[('user_id',)]
@@ -56,12 +56,13 @@ user_w2v_col = user_w2v.columns.tolist()[1:]
 # train_all=feat_builder2.outputFeatures(feat_builder.outputFeatures(train_df))
 # dump(train_all, "data/train2.pkl")
 
+y = train_df.pop('label')
 # 构造train
 train = feat_builder.outputFeatures(train_df)
-y = train.pop('label')
-# boruta特征筛选
-train=apply_boruta_feature_selection(train, boruta)
 train = feat_builder2.outputFeatures(train)
+# boruta特征筛选
+train = apply_boruta_feature_selection(train, boruta)
+# 引入Embedding
 train = train.merge(user_w2v, 'left', on='user_id')
 train = train.merge(merchant_w2v, 'left', on='merchant_id')
 # 用户与商家的余弦距离
@@ -80,9 +81,10 @@ test_df = prediction.merge(user_info, 'left', on='user_id')
 
 # 构造test
 test = feat_builder.outputFeatures(test_df)
-# boruta特征筛选
-test=apply_boruta_feature_selection(test, boruta)
 test = feat_builder2.outputFeatures(test)
+# boruta特征筛选
+test = apply_boruta_feature_selection(test, boruta)
+# 引入Embedding
 test = test.merge(user_w2v, 'left', on='user_id')
 test = test.merge(merchant_w2v, 'left', on='merchant_id')
 # 用户与商家的余弦距离

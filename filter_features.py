@@ -20,6 +20,6 @@ train.fillna(0, inplace=True)
 train[np.isinf(train)] = 0
 y = train.pop('label')
 boruta.fit(train, y)
-dump(boruta, 'data/boruta2.pkl')
+dump(boruta, 'data/boruta3.pkl')
 os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')
 print(boruta)
