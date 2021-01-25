@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Author  : qichun tang
+# @Date    : 2021-01-22
+# @Contact    : qichun.tang@bupt.edu.cn
+import os
+
+import numpy as np
+import pandas as pd
+from imblearn.ensemble import BalancedBaggingClassifier
+from joblib import load
+from lightgbm import LGBMClassifier
+from sklearn.model_selection import StratifiedKFold
+
+from fesys import FeaturesBuilder
+
+
+def calc_uv_cosine_mv(df):
+    df['uv_cosine_mv'] = np.sum(df[merchant_w2v_col].values * df[user_w2v_col].values, axis=1) / \
+                         (np.linalg.norm(df[merchant_w2v_col].values, axis=1) *
+                          np.linalg.norm(df[user_w2v_col].values, axis=1))
+
+
+feat_builder: FeaturesBuilder = load('data/feat_builder.pkl')
+# feat_builder2: FeaturesBuilder = load('data/feat_builder3.pkl')
+# feat_builder2.pk2df[('merchant_id',)].\
+#     drop(['purchase-merchant_id-cnt', 'merchant_id-cnt'], axis=1,inplace=True)
+# feat_builder2.pk2df[('user_id',)].\
+#     drop(['purchase-user_id-cnt', 'user_id-cnt'], axis=1,inplace=True)
+train_df = pd.read_csv('data_format1/train_format1.csv')
+user_info = pd.read_pickle('data/user_info.pkl')
+train_df = train_df.merge(user_info, 'left', on='user_id')
+origin_map = feat_builder.pk2df
+used_keys = [('user_id',), ('merchant_id',), ('user_id', 'merchant_id'), ('age_range',), ('gender',)]
+feat_builder.pk2df = {k: feat_builder.pk2df[k] for k in used_keys}
+train = feat_builder.outputFeatures(train_df)
+# train = feat_builder2.outputFeatures(train)
+merchant_w2v = pd.read_pickle('data/merchant_n2v.pkl')
+user_w2v = pd.read_pickle('data/user_n2v.pkl')
+merchant_w2v_col = merchant_w2v.columns.tolist()[1:]
+user_w2v_col = user_w2v.columns.tolist()[1:]
+y = train.pop('label')
+
+train = train.merge(user_w2v, 'left', on='user_id')
+train = train.merge(merchant_w2v, 'left', on='merchant_id')
+# 用户与商家的余弦距离
+calc_uv_cosine_mv(train)
+
+gbm = LGBMClassifier(random_state=0)
+cv = StratifiedKFold(5, True, 0)
+bc = BalancedBaggingClassifier(
+    gbm, random_state=0,
+    oob_score=True,  # warm_start=True
+)
+
+prediction = pd.read_csv('data_format1/test_format1.csv')
+prediction.pop('prob')
+test_df = prediction.merge(user_info, 'left', on='user_id')
+test = feat_builder.outputFeatures(test_df)
+# test = feat_builder2.outputFeatures(test)
+
+test = test.merge(user_w2v, 'left', on='user_id')
+test = test.merge(merchant_w2v, 'left', on='merchant_id')
+# 用户与商家的余弦距离
+calc_uv_cosine_mv(test)
+
+model = bc.fit(train, y)
+y_pred = bc.predict_proba(test)
+prediction['prob'] = y_pred[:, 1]
+prediction.to_csv('predictions/prediction_sub.csv', index=False)
+os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')
+print(bc)
