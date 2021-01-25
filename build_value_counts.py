@@ -21,8 +21,9 @@ def value_counts_ratio(seq):
 
 
 for pk in core_ids:
-    target_ids = [id_ for id_ in core_ids + item_ids if id_ != pk]
-    df = user_log.groupby(pk).agg(dict(zip(target_ids, [value_counts_ratio] * len(item_ids)))).reset_index()
+    df = user_log.groupby(pk).agg(
+        dict(zip(item_ids, [value_counts_ratio] * len(item_ids)))).\
+        reset_index()
     df.to_pickle(f'data/{pk}_value_counts_ratio.pkl')
     del df
     gc.collect()
