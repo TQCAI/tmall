@@ -14,7 +14,7 @@ func = lambda x: " ".join(map(str, x))
 # item  : 1 090 390
 # cat   : 1 658
 # brand : 4 124
-k2dim = {
+k2dim = {  # 根据用户的浏览继续生成物品序列，然后学习对应的词向量
     'brand_id': (30, 5),
     'cat_id': (20, 4),
     'item_id': (100, 10),
@@ -37,4 +37,4 @@ for k, seq in k2seq.items():
     )
     k2model[k] = model
     print(f'完成对{k}模型的训练')
-dump(k2seq, 'data/k2model.pkl')
+dump(k2model, 'data/k2model.pkl')

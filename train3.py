@@ -24,7 +24,7 @@ def calc_uv_cosine_mv(df):
 def apply_boruta_feature_selection(df, boruta):
     id_c = ['user_id', 'merchant_id']
     ids = df[id_c]
-    df = boruta.transform(df, weak=True, return_df=True)
+    df = boruta.transform(df, weak=False, return_df=True)
     df[id_c] = ids
     return df
 
