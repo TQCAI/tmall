@@ -50,9 +50,9 @@ def apply_brand_embedding_features(df, embed_id, is_train, N, M):
     return df
 
 
-items_vectors = pd.read_pickle("data/items_vectors.pkl")
 boruta = load('data/boruta2.pkl')
-similarity_features = pd.read_pickle("data/similarity_features.pkl")
+items_vectors = pd.read_pickle("data/items_vectors2.pkl")
+similarity_features = pd.read_pickle("data/similarity_features2.pkl")
 sim_cols = similarity_features.columns.tolist()[2:]
 feat_builder: FeaturesBuilder = load('data/feat_builder.pkl')
 feat_builder2: FeaturesBuilder = load('data/feat_builder2.pkl')

@@ -6,6 +6,7 @@
 import os
 from functools import partial
 
+import gensim
 import numpy as np
 import pandas as pd
 from joblib import load, dump
@@ -18,9 +19,11 @@ n_user = 424170
 n_merchant = 4995
 
 
-def weighted_sum_vectors(x: dict, model=None):
+def weighted_sum_vectors(x: dict, model: gensim.models.Word2Vec):
+    # 已经考虑权重了，需要mean吗？
     return np.array([model.wv.get_vector(str(k)) * w for k, w in x.items()]). \
-        mean(axis=0)
+        mean(axis=0)  # 如果写成mean，如果用户浏览了大量的物品，向量的模就会变小
+    #   ↑ mean 还是 sum
 
 
 # 直接造相似度出来？
@@ -37,6 +40,5 @@ for id_ in item_ids:
         df.pop(id_)
         pk2vcr[pk] = df
 
-dump(pk2vcr, "data/pk2vcr.pkl")
+dump(pk2vcr, "data/pk2vcr2.pkl")
 os.system('google-chrome https://ssl.gstatic.com/dictionary/static/sounds/oxford/ok--_gb_1.mp3')
-
