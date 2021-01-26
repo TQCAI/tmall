@@ -38,6 +38,20 @@ def apply_embedding_features(df):
     return df
 
 
+def apply_brand_embedding_features(df, is_train, N):
+    M = 20
+    for pk in ["user_id", "merchant_id"]:
+        col = f"{pk}_cat_id_vectors"
+        vectors = similarity_features[col].tolist()
+        if is_train:
+            vectors = vectors[:N]
+        else:
+            vectors = vectors[N:]
+        df[[f"{col}_i" for i in range(M)]] = np.array(vectors)
+    return df
+
+
+items_vectors = pd.read_pickle("data/items_vectors.pkl")
 boruta = load('data/boruta2.pkl')
 similarity_features = pd.read_pickle("data/similarity_features.pkl")
 sim_cols = similarity_features.columns.tolist()[2:]
@@ -67,6 +81,7 @@ sub_col = [f'{c1}-sub-{c2}' for c1, c2 in zip(user_w2v_col, merchant_w2v_col)]
 # train_all=feat_builder2.outputFeatures(feat_builder.outputFeatures(train_df))
 # dump(train_all, "data/train2.pkl")
 
+
 y = train_df.pop('label')
 N = y.size
 # 构造train
@@ -77,7 +92,8 @@ train = apply_boruta_feature_selection(train, boruta)
 # 引入Embedding
 train = apply_embedding_features(train)
 # 引入一些相似度特征 todo: 逐个尝试？
-train["brand_id_similarity"] = similarity_features["brand_id_similarity"][:N]
+# train["brand_id_similarity"] = similarity_features["brand_id_similarity"][:N]
+train = apply_brand_embedding_features(train, True, N)
 
 gbm = LGBMClassifier(random_state=0)
 cv = StratifiedKFold(5, True, 0)
@@ -97,9 +113,10 @@ test = feat_builder2.outputFeatures(test)
 test = apply_boruta_feature_selection(test, boruta)
 # 引入Embedding
 test = apply_embedding_features(test)
-# 用户与商家的余弦距离
 # 引入一些相似度特征
-test["brand_id_similarity"] = similarity_features["brand_id_similarity"][N:]
+# test["brand_id_similarity"] = similarity_features["brand_id_similarity"][N:]
+# 加入其他的Embedding特征
+test = apply_brand_embedding_features(test, False, N)
 
 model = bc.fit(train, y)
 y_pred = bc.predict_proba(test)

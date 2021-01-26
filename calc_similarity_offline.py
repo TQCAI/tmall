@@ -30,4 +30,5 @@ for id_ in item_ids:
     B = np.array(all_data[f"merchant_id_{id_}_vectors"].tolist())
     res[f"{id_}_similarity"] = np.sum(A * B, axis=1) / \
                                (np.linalg.norm(A, axis=1) * np.linalg.norm(B, axis=1))
+all_data.to_pickle("data/items_vectors.pkl")
 res.to_pickle("data/similarity_features.pkl")
